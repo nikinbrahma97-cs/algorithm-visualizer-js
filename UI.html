@@ -1,0 +1,1987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Algorithm Visualizer</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+
+:root {
+    --bg: #0a0c10;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #272d38;
+
+    --text: #f1f5f9;
+    --muted: #8b95a5;
+
+    --accent: #19d3ae;
+    --accent-soft: rgba(25, 211, 174, 0.14);
+
+    --blue: #5ea7ff;
+    --orange: #ffad5c;
+    --red: #ff647c;
+    --purple: #a78bfa;
+
+    --radius: 12px;
+}
+
+/* Light theme: same tokens, swapped surface/text values. Brand colors
+   (accent/blue/orange/red/purple) stay constant across themes so bar
+   states and stat values read identically either way. Applied via
+   data-theme="light" on <html>, set by the settings panel script. */
+:root[data-theme="light"] {
+    --bg: #f4f6f9;
+    --panel: #ffffff;
+    --panel-2: #eef1f5;
+    --border: #dde2e9;
+
+    --text: #14181f;
+    --muted: #6b7382;
+
+    --accent-soft: rgba(25, 211, 174, 0.12);
+}
+
+/* Reduced motion: collapses transitions/animations to near-instant
+   rather than display:none-ing them, so layout doesn't jump. */
+body.reduce-motion,
+body.reduce-motion * {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Space Grotesk", sans-serif;
+}
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.app-shell {
+    width: min(1500px, 96%);
+    margin: auto;
+    padding: 20px 0 30px;
+
+    min-height: 100vh;
+}
+
+/* ================= TOPBAR ================= */
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+
+    padding: 18px 22px;
+    margin-bottom: 16px;
+
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    width: 38px;
+    height: 38px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 9px;
+
+    background: var(--accent-soft);
+    color: var(--accent);
+
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+}
+
+.brand h1 {
+    font-size: 20px;
+}
+
+.brand p {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 8px 12px;
+
+    border: 1px solid var(--border);
+    border-radius: 999px;
+
+    color: var(--muted);
+    font-size: 12px;
+
+    font-family: "JetBrains Mono", monospace;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.auth-area {
+    position: relative;
+}
+
+.login-btn {
+    font-size: 12px;
+}
+
+.user-chip {
+    position: relative;
+}
+
+.user-chip-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 6px 12px 6px 6px;
+    border-radius: 999px;
+
+    background: var(--panel-2);
+}
+
+.user-avatar {
+    width: 24px;
+    height: 24px;
+    flex: none;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.user-name {
+    font-size: 12px;
+    max-width: 110px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 150px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    padding: 6px;
+
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+
+    z-index: 42;
+}
+
+.user-menu.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.user-menu-item {
+    border: none;
+    border-radius: 6px;
+    padding: 8px 10px;
+
+    text-align: left;
+    font-size: 12px;
+
+    background: transparent;
+}
+
+.user-menu-item:hover {
+    background: var(--panel-2);
+    border-color: transparent;
+}
+
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 1;
+}
+
+/* ================= SETTINGS DRAWER ================= */
+
+.settings-overlay {
+    position: fixed;
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.5);
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+
+    z-index: 40;
+}
+
+.settings-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.settings-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: min(340px, 90%);
+
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+
+    display: flex;
+    flex-direction: column;
+
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+
+    z-index: 41;
+}
+
+.settings-panel.is-open {
+    transform: translateX(0);
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 18px 20px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.settings-header h2 {
+    font-size: 15px;
+}
+
+.settings-body {
+    flex: 1;
+    overflow-y: auto;
+
+    padding: 20px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.settings-label {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.theme-toggle {
+    display: flex;
+    gap: 8px;
+}
+
+.theme-option {
+    flex: 1;
+    font-size: 12px;
+    padding: 8px 10px;
+}
+
+.theme-option.is-active {
+    background: var(--accent);
+    color: #06130f;
+    border-color: var(--accent);
+    font-weight: 700;
+}
+
+.switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.switch-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+
+.switch-track {
+    position: relative;
+    flex: none;
+
+    width: 38px;
+    height: 22px;
+
+    border-radius: 999px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.switch-track::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+
+    width: 16px;
+    height: 16px;
+
+    border-radius: 50%;
+    background: var(--muted);
+
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.switch-input:checked + .switch-track {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+}
+
+.switch-input:checked + .switch-track::before {
+    transform: translateX(16px);
+    background: var(--accent);
+}
+
+.settings-reset-btn {
+    width: 100%;
+    font-size: 12px;
+    color: var(--red);
+}
+
+.settings-footnote {
+    padding: 14px 20px;
+
+    color: var(--muted);
+    font-size: 10px;
+
+    border-top: 1px solid var(--border);
+}
+
+/* ================= AUTH MODAL ================= */
+
+.auth-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(360px, 92%);
+
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    transform: translate(-50%, -48%) scale(0.98);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+
+    z-index: 41;
+}
+
+.auth-modal.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.auth-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+
+    padding: 16px 16px 16px 20px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.auth-tab {
+    font-size: 12px;
+    padding: 7px 12px;
+    background: transparent;
+}
+
+.auth-tab.is-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+    font-weight: 700;
+}
+
+.auth-demo-note {
+    padding: 14px 20px 4px;
+
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.auth-form {
+    padding: 16px 20px 20px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.auth-form[hidden] {
+    display: none;
+}
+
+.auth-field label {
+    display: block;
+
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+
+    margin-bottom: 6px;
+}
+
+.auth-field input {
+    width: 100%;
+    padding: 10px 12px;
+
+    background: var(--panel-2);
+    color: var(--text);
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    outline: none;
+}
+
+.auth-field input:focus {
+    border-color: var(--accent);
+}
+
+.auth-error {
+    color: var(--red);
+    font-size: 11px;
+}
+
+.auth-submit-btn {
+    width: 100%;
+}
+
+.user-data-json {
+    max-height: 160px;
+    overflow-y: auto;
+
+    padding: 10px;
+
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    color: var(--muted);
+
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/*
+   Optional running-state hook. Not applied by any HTML below — if the
+   existing JS ever adds class="is-running" to #statusText's parent
+   (.status-badge) while the algorithm is executing, the dot will pulse.
+   Harmless and inert until then.
+*/
+.status-badge.is-running .status-dot {
+    animation: statusPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+/* ================= CONTROL DECK ================= */
+
+.control-deck {
+    display: grid;
+    grid-template-columns: 1.2fr 2fr 1fr 1fr auto;
+
+    gap: 12px;
+
+    padding: 16px;
+
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    margin-bottom: 16px;
+}
+
+.control-field {
+    min-width: 0;
+}
+
+.control-field label {
+    display: block;
+
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+
+    margin-bottom: 7px;
+}
+
+select,
+input[type="text"] {
+    width: 100%;
+
+    padding: 10px 12px;
+
+    background: var(--panel-2);
+    color: var(--text);
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    outline: none;
+}
+
+select:focus,
+input[type="text"]:focus {
+    border-color: var(--accent);
+}
+
+.range-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+}
+
+.range-value {
+    min-width: 42px;
+
+    color: var(--accent);
+
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+}
+
+/* ---- Speed control: slow -> fast gradient track + edge labels ---- */
+
+.speed-row {
+    gap: 8px;
+}
+
+.speed-edge {
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+#speed {
+    height: 6px;
+    border-radius: 999px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(90deg, var(--blue), var(--accent) 55%, var(--orange));
+}
+
+#speed::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: transparent;
+}
+
+#speed::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    margin-top: -4.5px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--border);
+    cursor: pointer;
+}
+
+#speed::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--blue), var(--accent) 55%, var(--orange));
+}
+
+#speed::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--border);
+    cursor: pointer;
+}
+
+/* ================= BUTTONS ================= */
+
+button {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    padding: 10px 13px;
+
+    background: var(--panel-2);
+    color: var(--text);
+
+    transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+button:hover {
+    border-color: #46505f;
+    background: #1c212b;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.primary-btn {
+    background: var(--accent);
+    color: #06130f;
+    border-color: var(--accent);
+
+    font-weight: 700;
+}
+
+.primary-btn:hover {
+    background: #2be0bb;
+}
+
+.danger-btn {
+    color: var(--red);
+}
+
+.random-btn {
+    width: 100%;
+    margin-top: 22px;
+}
+
+/*
+   Execution-state styling for the action buttons. These rely on the
+   native `disabled` attribute — if the existing JS already disables
+   startBtn/pauseBtn/stepBtn while running (a common pattern), this
+   makes that state visually clear. It is inert otherwise and changes
+   no behaviour.
+*/
+
+.action-buttons button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.action-buttons button:disabled:hover {
+    border-color: var(--border);
+    background: var(--panel-2);
+}
+
+.action-buttons .primary-btn:disabled {
+    background: var(--panel-2);
+    color: var(--muted);
+    border-color: var(--border);
+}
+
+.action-buttons .danger-btn:disabled {
+    color: var(--muted);
+}
+
+/*
+   Optional "completed" hook — apply class="is-complete" to startBtn
+   from JS once a run finishes, to swap the primary button to a calm
+   completed look instead of the active accent fill. Inert until used.
+*/
+.primary-btn.is-complete {
+    background: var(--panel-2);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* ================= WORKSPACE ================= */
+
+.workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 310px;
+    gap: 16px;
+
+    align-items: start;
+}
+
+/* ================= VISUALIZATION ================= */
+
+.viz-panel,
+.stats-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.viz-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    overflow: hidden;
+
+    min-height: 0;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+
+    padding: 15px 18px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.panel-subtitle {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 7px;
+}
+
+.action-buttons button {
+    font-size: 12px;
+}
+
+.visualization-container {
+    position: relative;
+
+    height: clamp(675px, 75vh, 950px);
+
+    padding: 30px 25px 50px;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            rgba(255,255,255,0.025) 1px,
+            transparent 1px
+        );
+
+    background-size: 100% 40px;
+}
+
+/* ---- Execution progress: thin bar pinned to the top edge of the
+   visualization container. Starts empty; an optional hook for JS to
+   set #vizProgressFill's width as execution advances. Purely additive
+   — nothing else in the container shifts to make room for it. ---- */
+
+.viz-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+
+    background: rgba(255, 255, 255, 0.05);
+    z-index: 2;
+}
+
+.viz-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.2s ease;
+}
+
+.bars {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+
+    gap: 4px;
+}
+
+.bar-wrapper {
+    flex: 1;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+
+    min-width: 3px;
+}
+
+.bar {
+    width: 100%;
+    max-width: 42px;
+
+    min-height: 3px;
+
+    border-radius: 4px 4px 0 0;
+
+    background: var(--accent);
+
+    transition:
+        height 0.18s ease,
+        background 0.18s ease,
+        opacity 0.18s ease;
+}
+
+.bar-label {
+    margin-top: 6px;
+
+    color: var(--muted);
+
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px;
+
+    white-space: nowrap;
+}
+
+.bar.comparing {
+    background: var(--orange);
+}
+
+.bar.swapping {
+    background: var(--red);
+}
+
+.bar.sorted {
+    background: var(--blue);
+}
+
+.bar.found {
+    background: var(--purple);
+}
+
+.bar.checked {
+    opacity: 0.4;
+}
+
+.empty-state {
+    height: 100%;
+
+    display: grid;
+    place-items: center;
+
+    color: var(--muted);
+
+    text-align: center;
+}
+
+.empty-state strong {
+    display: block;
+    color: var(--text);
+    margin-bottom: 5px;
+}
+
+/* ================= STATS ================= */
+
+.stats-panel {
+    overflow: hidden;
+}
+
+.stats-section {
+    padding: 16px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.stats-section:last-child {
+    border-bottom: none;
+}
+
+.stats-section h2 {
+    font-size: 12px;
+
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+
+    margin-bottom: 12px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 8px 0;
+
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-name {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.stat-value {
+    color: var(--text);
+
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+}
+
+.execution-status {
+    color: var(--accent);
+
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+/* ================= COMPLEXITY ================= */
+
+.complexity {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+
+    margin-top: 10px;
+}
+
+.complexity-box {
+    padding: 10px;
+
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.complexity-box span {
+    display: block;
+
+    color: var(--muted);
+    font-size: 10px;
+    margin-bottom: 5px;
+}
+
+.complexity-box strong {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+}
+
+.algorithm-description {
+    margin-top: 12px;
+    padding-top: 12px;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.55;
+}
+
+/* ================= LEGEND ================= */
+
+.legend {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.legend-swatch {
+    width: 12px;
+    height: 12px;
+    flex: none;
+
+    border-radius: 3px;
+    background: var(--accent);
+}
+
+.legend-swatch.comparing { background: var(--orange); }
+.legend-swatch.swapping  { background: var(--red); }
+.legend-swatch.sorted    { background: var(--blue); }
+.legend-swatch.found     { background: var(--purple); }
+.legend-swatch.checked   { background: var(--accent); opacity: 0.4; }
+
+/* ================= EVENT TIMELINE ================= */
+
+.timeline {
+    max-height: 170px;
+    overflow-y: auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.timeline::-webkit-scrollbar {
+    width: 6px;
+}
+
+.timeline::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+}
+
+.timeline-empty {
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+    padding: 14px 0;
+}
+
+.timeline-entry {
+    padding: 6px 8px;
+
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+
+    color: var(--text);
+
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 1100px) {
+    .control-deck {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-panel {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .stats-section {
+        border-right: 1px solid var(--border);
+    }
+
+    .stats-section.span-full {
+        grid-column: 1 / -1;
+        border-right: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .app-shell {
+        width: 94%;
+    }
+
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .control-deck {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-panel {
+        display: block;
+    }
+
+    .stats-section.span-full {
+        border-right: none;
+    }
+
+    .action-buttons {
+        flex-wrap: wrap;
+    }
+
+    .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .visualization-container {
+        height: 450px;
+        padding: 20px 10px 40px;
+    }
+
+    .bar-label {
+        display: none;
+    }
+
+    .speed-edge {
+        display: none;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <!-- ================= TOPBAR ================= -->
+
+    <header class="topbar">
+
+        <div class="brand">
+            <div class="logo">AV</div>
+
+            <div>
+                <h1>Algorithm Visualizer</h1>
+                <p>Interactive algorithm execution environment</p>
+            </div>
+        </div>
+
+        <div class="topbar-right">
+
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span id="statusText">Ready</span>
+            </div>
+            
+            <div class="auth-area" id="authArea">
+
+                <button class="login-btn" id="loginBtn" type="button">
+                    Log in
+                </button>
+
+                <div class="user-chip" id="userChip" hidden>
+
+                    <button
+                        class="user-chip-trigger"
+                        id="userChipTrigger"
+                        type="button"
+                        aria-haspopup="menu"
+                        aria-expanded="false"
+                        aria-controls="userMenu"
+                    >
+                        <span class="user-avatar" id="userAvatar">U</span>
+                        <span class="user-name" id="userNameLabel">Username</span>
+                    </button>
+
+                    <div class="user-menu" id="userMenu" role="menu">
+                        <button class="user-menu-item" id="myDataBtn" type="button" role="menuitem">My Data</button>
+                        <button class="user-menu-item" id="logoutBtn" type="button" role="menuitem">Log out</button>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <button
+                class="icon-btn"
+                id="settingsBtn"
+                aria-label="Open settings"
+                aria-haspopup="dialog"
+                aria-controls="settingsPanel"
+            >
+                ⚙
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- ================= CONTROLS ================= -->
+
+    <section class="control-deck">
+
+        <div class="control-field">
+            <label for="algorithm">Algorithm</label>
+
+            <select id="algorithm">
+
+                <optgroup label="Sorting">
+                    <option value="bubble">Bubble Sort</option>
+                    <option value="insertion">Insertion Sort</option>
+                    <option value="selection">Selection Sort</option>
+                    <option value="merge">Merge Sort</option>
+                    <option value="quick">Quick Sort</option>
+                    <option value="heap">Heap Sort</option>
+                </optgroup>
+
+                <optgroup label="Searching">
+                    <option value="linear">Linear Search</option>
+                    <option value="binary">Binary Search</option>
+                </optgroup>
+
+            </select>
+        </div>
+
+
+        <div class="control-field">
+            <label for="dataset">Dataset</label>
+
+            <input
+                type="text"
+                id="dataset"
+                value="42, 17, 8, 93, 31, 56, 12, 74, 25, 61"
+                placeholder="Example: 10, 5, 20, 3, 8"
+            >
+        </div>
+
+
+        <div class="control-field">
+            <label for="size">Dataset Size</label>
+
+            <div class="range-row">
+
+                <input
+                    type="range"
+                    id="size"
+                    min="5"
+                    max="500"
+                    value="10"
+                >
+
+                <span
+                    class="range-value"
+                    id="sizeValue"
+                >
+                    10
+                </span>
+
+            </div>
+        </div>
+
+
+        <div class="control-field">
+            <label for="speed">Playback Speed</label>
+
+            <div class="range-row speed-row">
+
+                <span class="speed-edge">Slow</span>
+
+                <input
+                    type="range"
+                    id="speed"
+                    min="1"
+                    max="10"
+                    value="1"
+                >
+
+                <span class="speed-edge">Fast</span>
+
+                <span
+                    class="range-value"
+                    id="speedValue"
+                >
+                    1×
+                </span>
+
+            </div>
+        </div>
+
+
+        <div class="control-field" id="targetField">
+
+            <label for="target">Search Target</label>
+
+            <input
+                type="text"
+                id="target"
+                placeholder="Value"
+            >
+
+        </div>
+
+
+        <div class="control-field">
+
+            <label>&nbsp;</label>
+
+            <button
+                class="random-btn"
+                id="randomBtn"
+            >
+                Randomize
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================= WORKSPACE ================= -->
+
+    <main class="workspace">
+
+        <!-- VISUALIZATION -->
+
+        <section class="viz-panel">
+
+            <div class="panel-header">
+
+                <div>
+                    <div class="panel-title">
+                        Visualization
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Watch each comparison, swap, and search operation
+                    </div>
+                </div>
+
+
+                <div class="action-buttons">
+
+                    <button
+                        class="primary-btn"
+                        id="startBtn"
+                    >
+                        Start
+                    </button>
+
+                    <button id="pauseBtn">
+                        Pause
+                    </button>
+
+                    <button id="stepBtn">
+                        Step
+                    </button>
+
+                    <button
+                        class="danger-btn"
+                        id="resetBtn"
+                    >
+                        Reset
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="visualization-container"
+                id="visualizationContainer"
+            >
+
+                <div class="viz-progress" id="vizProgress" aria-hidden="true">
+                    <div class="viz-progress-fill" id="vizProgressFill"></div>
+                </div>
+
+                <canvas id="visualizationCanvas"></canvas>
+
+                <div
+                    class="bars"
+                    id="bars"
+                ></div>
+
+            </div>
+
+        </section>
+
+
+        <!-- STATISTICS -->
+
+        <aside class="stats-panel">
+
+            <!-- ALGORITHM INFO -->
+
+            <section class="stats-section">
+
+                <h2>Algorithm</h2>
+
+                <div class="stat-row">
+                    <span class="stat-name">Name</span>
+                    <span class="stat-value" id="algorithmName">Bubble Sort</span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="stat-name">Category</span>
+                    <span class="stat-value" id="algorithmCategory">Sorting</span>
+                </div>
+
+                <div class="complexity">
+
+                    <div class="complexity-box">
+                        <span>Best</span>
+                        <strong id="complexityBest">O(n)</strong>
+                    </div>
+
+                    <div class="complexity-box">
+                        <span>Average</span>
+                        <strong id="complexityAverage">O(n²)</strong>
+                    </div>
+
+                    <div class="complexity-box">
+                        <span>Worst</span>
+                        <strong id="timeComplexity">O(n²)</strong>
+                    </div>
+
+                    <div class="complexity-box">
+                        <span>Space</span>
+                        <strong id="spaceComplexity">O(1)</strong>
+                    </div>
+
+                </div>
+
+                <p class="algorithm-description" id="algorithmDescription">
+                    Repeatedly steps through the list, swapping adjacent elements that are out of order, until no swaps remain.
+                </p>
+
+            </section>
+
+
+            <!-- SORT STATS -->
+
+            <section
+                class="stats-section"
+                id="sortingStats"
+            >
+
+                <h2>Sorting Statistics</h2>
+
+                <div class="stat-row">
+                    <span class="stat-name">
+                        Comparisons
+                    </span>
+
+                    <span
+                        class="stat-value"
+                        id="comparisons"
+                    >
+                        0
+                    </span>
+                </div>
+
+
+                <div class="stat-row">
+                    <span class="stat-name">
+                        Swaps
+                    </span>
+
+                    <span
+                        class="stat-value"
+                        id="swaps"
+                    >
+                        0
+                    </span>
+                </div>
+
+
+                <div class="stat-row">
+                    <span class="stat-name">
+                        Array Accesses
+                    </span>
+
+                    <span
+                        class="stat-value"
+                        id="accesses"
+                    >
+                        0
+                    </span>
+                </div>
+
+
+                <div class="stat-row">
+                    <span class="stat-name">
+                        Steps
+                    </span>
+
+                    <span
+                        class="stat-value"
+                        id="steps"
+                    >
+                        0
+                    </span>
+                </div>
+
+            </section>
+
+
+            <!-- SEARCH STATS -->
+
+            <section
+                class="stats-section"
+                id="searchStats"
+            >
+
+                <h2>Search Statistics</h2>
+
+                <div class="stat-row">
+                    <span class="stat-name">
+                        Comparisons
+                    </span>
+
+                    <span
+                        class="stat-value"
+                        id="searchComparisons"
+                    >
+                        0
+                    </span>
+                </div>
+
+
+                <div class="stat-row">
+                    <span class="stat-name">
+                        Elements Checked
+                    </span>
+
+                    <span
+                        class="stat-value"
+                        id="checked"
+                    >
+                        0
+                    </span>
+                </div>
+
+
+                <div class="stat-row">
+                    <span class="stat-name">
+                        Steps
+                    </span>
+
+                    <span
+                        class="stat-value"
+                        id="searchSteps"
+                    >
+                        0
+                    </span>
+                </div>
+
+            </section>
+
+
+            <!-- LEGEND -->
+
+            <section class="stats-section span-full">
+
+                <h2>Legend</h2>
+
+                <div class="legend">
+
+                    <div class="legend-item">
+                        <span class="legend-swatch comparing"></span>
+                        Comparing — elements currently being compared
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="legend-swatch swapping"></span>
+                        Swapping — elements being exchanged
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="legend-swatch sorted"></span>
+                        Sorted — placed in final position
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="legend-swatch checked"></span>
+                        Checked — already visited, ruled out
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="legend-swatch found"></span>
+                        Found — search target located
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- EXECUTION -->
+
+            <section class="stats-section">
+
+                <h2>Execution</h2>
+
+                <div
+                    class="execution-status"
+                    id="executionStatus"
+                >
+                    Ready to execute.
+                </div>
+
+            </section>
+
+
+            <!-- EVENT TIMELINE -->
+
+            <section class="stats-section span-full">
+
+                <h2>Event Timeline</h2>
+
+                <div class="timeline" id="eventLog">
+                    <p class="timeline-empty"></p>
+                </div>
+
+            </section>
+
+        </aside>
+
+    </main>
+
+
+    <!-- ================= SETTINGS DRAWER ================= -->
+
+    <div class="settings-overlay" id="settingsOverlay"></div>
+
+    <aside
+        class="settings-panel"
+        id="settingsPanel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settingsTitle"
+        aria-hidden="true"
+    >
+
+        <div class="settings-header">
+            <h2 id="settingsTitle">Settings</h2>
+
+            <button
+                class="icon-btn"
+                id="settingsCloseBtn"
+                aria-label="Close settings"
+            >
+                ✕
+            </button>
+        </div>
+
+        <div class="settings-body">
+
+            <div class="settings-group">
+                <span class="settings-label">Theme</span>
+
+                <div class="theme-toggle" role="radiogroup" aria-label="Theme">
+                    <button
+                        class="theme-option is-active"
+                        type="button"
+                        data-theme-value="dark"
+                        role="radio"
+                        aria-checked="true"
+                    >
+                        Dark
+                    </button>
+
+                    <button
+                        class="theme-option"
+                        type="button"
+                        data-theme-value="light"
+                        role="radio"
+                        aria-checked="false"
+                    >
+                        Light
+                    </button>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label class="switch-row" for="reduceMotionToggle">
+                    <span>Reduce motion</span>
+                    <input type="checkbox" id="reduceMotionToggle" class="switch-input">
+                    <span class="switch-track" aria-hidden="true"></span>
+                </label>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label" for="defaultSpeedInput">Default playback speed</label>
+
+                <div class="range-row">
+                    <input type="range" id="defaultSpeedInput" min="1" max="10" value="1">
+                    <span class="range-value" id="defaultSpeedValue">1×</span>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label" for="defaultDatasetSizeInput">
+                    Default dataset size
+                </label>
+
+                <div class="range-row">
+                    <input
+                        type="range"
+                        id="defaultDatasetSizeInput"
+                        min="5"
+                        max="500"
+                        value="10"
+                    >
+
+                    <span
+                        class="range-value"
+                        id="defaultDatasetSizeValue"
+                    >
+                        10
+                    </span>
+                </div>
+           </div>
+
+            <button class="settings-reset-btn" id="settingsResetBtn" type="button">
+                Reset to defaults
+            </button>
+
+        </div>
+
+        <p class="settings-footnote">Preferences are saved in this browser only, via localStorage.</p>
+
+    </aside>
+
+
+    <!-- ================= AUTH MODAL (demo only) ================= -->
+
+    <div class="settings-overlay" id="authOverlay"></div>
+
+    <div
+        class="auth-modal"
+        id="authModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="authModalTitle"
+        aria-hidden="true"
+    >
+
+        <div class="auth-modal-header">
+
+            <div class="auth-tabs" role="tablist" aria-label="Authentication" id="authModalTitle">
+                <button class="auth-tab is-active" id="loginTabBtn" type="button" role="tab" aria-selected="true">Log in</button>
+                <button class="auth-tab" id="signupTabBtn" type="button" role="tab" aria-selected="false">Sign up</button>
+            </div>
+
+            <button class="icon-btn" id="authCloseBtn" aria-label="Close">✕</button>
+
+        </div>
+
+        <p class="auth-demo-note">
+            Demo only — accounts live in this browser's localStorage, unencrypted. Don't reuse a real password.
+        </p>
+
+        <form class="auth-form" id="loginForm">
+
+            <div class="auth-field">
+                <label for="loginUsername">Username</label>
+                <input type="text" id="loginUsername" autocomplete="username" required>
+            </div>
+
+            <div class="auth-field">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" autocomplete="current-password" required>
+            </div>
+
+            <p class="auth-error" id="loginError" hidden></p>
+
+            <button class="auth-submit-btn primary-btn" type="submit">Log in</button>
+
+        </form>
+
+        <form class="auth-form" id="signupForm" hidden>
+
+            <div class="auth-field">
+                <label for="signupUsername">Username</label>
+                <input type="text" id="signupUsername" autocomplete="username" required>
+            </div>
+
+            <div class="auth-field">
+                <label for="signupPassword">Password</label>
+                <input type="password" id="signupPassword" autocomplete="new-password" required>
+            </div>
+
+            <p class="auth-error" id="signupError" hidden></p>
+
+            <button class="auth-submit-btn primary-btn" type="submit">Create account</button>
+
+        </form>
+
+    </div>
+
+
+    <!-- ================= MY DATA DRAWER (demo only) ================= -->
+
+    <div class="settings-overlay" id="userDataOverlay"></div>
+
+    <aside
+        class="settings-panel"
+        id="userDataPanel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="userDataTitle"
+        aria-hidden="true"
+    >
+
+        <div class="settings-header">
+            <h2 id="userDataTitle">My Data</h2>
+            <button class="icon-btn" id="userDataCloseBtn" aria-label="Close">✕</button>
+        </div>
+
+        <div class="settings-body">
+
+            <div class="settings-group">
+                <span class="settings-label">Account</span>
+
+                <div class="stat-row">
+                    <span class="stat-name">Username</span>
+                    <span class="stat-value" id="userDataUsername">—</span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="stat-name">Joined</span>
+                    <span class="stat-value" id="userDataJoined">—</span>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <span class="settings-label">Stored preferences</span>
+                <pre class="user-data-json" id="userDataJson">{}</pre>
+            </div>
+
+            <button class="settings-reset-btn" id="exportDataBtn" type="button">Export my data (.json)</button>
+            <button class="settings-reset-btn" id="clearDataBtn" type="button">Clear my saved data</button>
+            <button class="settings-reset-btn" id="deleteAccountBtn" type="button">Delete account</button>
+
+        </div>
+
+        <p class="settings-footnote">Demo only — everything here lives in this browser's localStorage and is never sent anywhere.</p>
+
+    </aside>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<script src="./js/chart.js"></script>
+<script src="./js/algorithm.js"></script>
+<script src="./js/mainUI.js"></script>
+<script src="./js/settings.js"></script>
+<script src="./js/accounts.js"></script>
+
+</body>
+</html>

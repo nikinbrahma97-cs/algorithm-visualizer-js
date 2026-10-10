@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "start": "servor --reload"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "servor": "^4.0.2"
+  }
+}
