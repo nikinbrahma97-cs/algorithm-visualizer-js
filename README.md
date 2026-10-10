@@ -132,4 +132,5 @@ Add a license before distributing the project publicly. If no license is specifi
 ---
 
 **Built as a learning project exploring algorithms, JavaScript, data visualization, and interactive UI development.**
+
 [Edit in StackBlitz next generation editor ⚡️](https://stackblitz.com/~/github.com/nikinbrahma97-cs/stackblitz-starters-ps8fwzsk)
